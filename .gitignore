@@ -1,0 +1,5 @@
+node_modules
+.env
+.ts-node/
+*.log
+auth.json
