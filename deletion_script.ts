@@ -24,17 +24,21 @@ async function deleteOneTweet() {
     await menuButton.click();
     await page.waitForTimeout(1000);
 
-    // Click "Delete"
-    await page.click('text=Delete');
-    await page.waitForTimeout(500);
+    // Click "Delete" in tweet menu
+    const deleteMenuItem = page.getByRole("menuitem", { name: "Delete" });
+    await deleteMenuItem.click();
 
-    // Confirm delete
-    await page.click('text=Delete');
+    // Confirm delete in modal
+    const confirmDelete = page.getByRole("button", { name: "Delete" });
+    await confirmDelete.waitFor({ state: "visible" });
+    await confirmDelete.click();
+
     console.log("✅ Deleted one tweet!");
   } else {
     console.log("Couldn't find the menu button");
   }
 
+  
   await browser.close();
 }
 
