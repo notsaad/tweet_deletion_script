@@ -8,6 +8,8 @@ async function deleteOneTweet() {
 
   await page.goto("https://x.com/notsaadOK"); // replace with your handle
   await page.waitForTimeout(5000); // let tweets load
+  await page.evaluate(() => window.scrollBy(0, 400)); // scroll past pinned/header content
+  await page.waitForTimeout(1000);
 
   // Select the first tweet
   const firstTweet = page.locator("article").first();
