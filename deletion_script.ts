@@ -1,4 +1,3 @@
-// delete-one.ts
 import { chromium } from "playwright";
 
 async function deleteOneTweet() {
@@ -15,6 +14,23 @@ async function deleteOneTweet() {
   const firstTweet = page.locator("article").first();
   if (!firstTweet) {
     console.log("No tweet found!");
+    return;
+  }
+
+  // If the first tweet is a repost/retweet, remove it instead of trying to delete
+  const undoRepostButton = firstTweet.getByRole("button", { name: /Undo (Repost|Retweet)/i });
+  if ((await undoRepostButton.count()) > 0) {
+    await undoRepostButton.first().click();
+
+    // Some UI variants open a menu after the click; handle that flow too
+    const undoRepostMenuItem = page.getByRole("menuitem", { name: /Undo (Repost|Retweet)/i });
+    if ((await undoRepostMenuItem.count()) > 0) {
+      await undoRepostMenuItem.first().click();
+    }
+
+    await page.waitForTimeout(1000);
+    console.log("✅ Removed one repost!");
+    await browser.close();
     return;
   }
 
