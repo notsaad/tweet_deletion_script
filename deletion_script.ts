@@ -18,14 +18,39 @@ async function deleteOneTweet() {
   }
 
   // If the first tweet is a repost/retweet, remove it instead of trying to delete
-  const undoRepostButton = firstTweet.getByRole("button", { name: /Undo (Repost|Retweet)/i });
-  if ((await undoRepostButton.count()) > 0) {
-    await undoRepostButton.first().click();
+  const repostBanner = firstTweet.getByText(/You reposted/i);
+  const undoRepostWithinTweet = firstTweet.getByRole("button", {
+    name: /Undo (Repost|Retweet)/i,
+  });
+  if (
+    (await repostBanner.count()) > 0 ||
+    (await undoRepostWithinTweet.count()) > 0
+  ) {
+    const repostActionButton = firstTweet.getByRole("button", {
+      name: /Repost|Reposted|Retweet|Undo Repost|Undo Retweet/i,
+    });
 
-    // Some UI variants open a menu after the click; handle that flow too
-    const undoRepostMenuItem = page.getByRole("menuitem", { name: /Undo (Repost|Retweet)/i });
-    if ((await undoRepostMenuItem.count()) > 0) {
-      await undoRepostMenuItem.first().click();
+    if ((await repostActionButton.count()) === 0) {
+      console.log("Couldn't find the repost button to undo");
+      await browser.close();
+      return;
+    }
+
+    await repostActionButton.first().click();
+    await page.waitForTimeout(500);
+
+    const undoRepostMenu = page.getByRole("menuitem", { name: /Undo (Repost|Retweet)/i });
+    if ((await undoRepostMenu.count()) > 0) {
+      await undoRepostMenu.first().click();
+    } else {
+      const undoRepostButton = page.getByRole("button", { name: /Undo (Repost|Retweet)/i });
+      if ((await undoRepostButton.count()) > 0) {
+        await undoRepostButton.first().click();
+      } else {
+        console.log("Couldn't find the undo repost menu option");
+        await browser.close();
+        return;
+      }
     }
 
     await page.waitForTimeout(1000);
@@ -54,7 +79,6 @@ async function deleteOneTweet() {
     console.log("Couldn't find the menu button");
   }
 
-  
   await browser.close();
 }
 
