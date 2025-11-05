@@ -1,7 +1,13 @@
 import { chromium } from "playwright";
 
-async function deleteTweets(count: number = 5) {
-  const browser = await chromium.launch({ headless: false });
+const TWEETS_TO_DELETE = 50;
+// Helper function to generate random delay between min and max milliseconds
+function randomDelay(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+async function deleteTweets(count: number) {
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ storageState: "auth.json" });
   const page = await context.newPage();
 
@@ -17,7 +23,9 @@ async function deleteTweets(count: number = 5) {
 
     // Wait a bit before processing the next tweet to avoid rate limits
     if (i > 0) {
-      await page.waitForTimeout(2000); // 2 second delay between deletions
+      const delay = randomDelay(1500, 3500); // Random delay between 1.5-3.5 seconds
+      console.log(`⏳ Waiting ${(delay / 1000).toFixed(1)}s before next deletion...`);
+      await page.waitForTimeout(delay);
     }
 
     // Select the first tweet (after deletions, this will be the next one)
@@ -49,7 +57,7 @@ async function deleteTweets(count: number = 5) {
       }
 
       await repostActionButton.first().click();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(randomDelay(400, 700));
 
       const undoRepostMenu = page.getByRole("menuitem", { name: /Undo (Repost|Retweet)/i });
       if ((await undoRepostMenu.count()) > 0) {
@@ -64,7 +72,7 @@ async function deleteTweets(count: number = 5) {
         }
       }
 
-      await page.waitForTimeout(1500); // Wait for repost removal to complete
+      await page.waitForTimeout(randomDelay(1200, 2000)); // Wait for repost removal to complete
       deletedCount++;
       console.log(`✅ Removed repost ${deletedCount} of ${count}!`);
       continue;
@@ -78,7 +86,7 @@ async function deleteTweets(count: number = 5) {
     }
 
     await menuButton.first().click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(randomDelay(800, 1400));
 
     // Click "Delete" in tweet menu
     const deleteMenuItem = page.getByRole("menuitem", { name: "Delete" });
@@ -90,14 +98,14 @@ async function deleteTweets(count: number = 5) {
     }
 
     await deleteMenuItem.first().click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(randomDelay(400, 700));
 
     // Confirm delete in modal
     const confirmDelete = page.getByRole("button", { name: "Delete" });
     await confirmDelete.waitFor({ state: "visible" });
     await confirmDelete.click();
 
-    await page.waitForTimeout(1500); // Wait for deletion to complete
+    await page.waitForTimeout(randomDelay(1200, 2000)); // Wait for deletion to complete
     deletedCount++;
     console.log(`✅ Deleted tweet ${deletedCount} of ${count}!`);
   }
@@ -106,4 +114,4 @@ async function deleteTweets(count: number = 5) {
   await browser.close();
 }
 
-deleteTweets(5);
+deleteTweets(TWEETS_TO_DELETE);
