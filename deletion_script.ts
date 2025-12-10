@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const TWEETS_TO_DELETE = 50;
+const TWEETS_TO_DELETE = 100;
 // Helper function to generate random delay between min and max milliseconds
 function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -12,7 +12,29 @@ async function deleteTweets(count: number) {
   const page = await context.newPage();
 
   await page.goto("https://x.com/notsaadOK"); // replace with your handle
-  await page.waitForTimeout(5000); // let tweets load
+  await page.waitForTimeout(3000); // let page load
+  
+  // Click Replies tab to force content loading
+  const repliesTab = page.getByRole("tab", { name: /Replies/i });
+  if ((await repliesTab.count()) > 0) {
+    await repliesTab.first().click();
+    await page.waitForTimeout(2000); // wait for replies to load
+  }
+  
+  // Go back to Posts tab
+  const postsTab = page.getByRole("tab", { name: /Posts/i });
+  if ((await postsTab.count()) > 0) {
+    await postsTab.first().click();
+    await page.waitForTimeout(3000); // let tweets load
+  } else {
+    // Fallback: try "Posts & replies" if "Posts" doesn't exist
+    const postsAndRepliesTab = page.getByRole("tab", { name: /Posts & replies/i });
+    if ((await postsAndRepliesTab.count()) > 0) {
+      await postsAndRepliesTab.first().click();
+      await page.waitForTimeout(3000);
+    }
+  }
+  
   await page.evaluate(() => window.scrollBy(0, 400)); // scroll past pinned/header content
   await page.waitForTimeout(1000);
 

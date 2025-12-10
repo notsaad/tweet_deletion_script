@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
 
-const REPLIES_TO_DELETE = 5;
+const REPLIES_TO_DELETE = 50;
 // Helper function to generate random delay between min and max milliseconds
 function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
