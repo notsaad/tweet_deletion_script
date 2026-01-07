@@ -36,11 +36,7 @@ async function deleteReplies(count: number) {
       await page.waitForTimeout(delay);
     }
 
-    // Find the user's actual reply (not the tweet being replied to)
-    // On the replies page, each reply thread shows:
-    // 1. The original tweet (not ours) - often has "Replying to @username" text
-    // 2. Our reply below it (this is what we want to delete)
-
+    // Find the first article that belongs to the user (has their username as author)
     const allArticles = page.locator("article");
     const articleCount = await allArticles.count();
 
@@ -49,52 +45,24 @@ async function deleteReplies(count: number) {
       break;
     }
 
-    // Strategy: Find articles with "Replying to" text (the original tweet),
-    // then find the next article that has the user as author (the user's reply)
+    // Find the first article authored by the user
     let userReply = null;
 
-    for (let j = 0; j < articleCount - 1; j++) {
+    for (let j = 0; j < articleCount; j++) {
       const article = allArticles.nth(j);
 
-      // Check if this article has "Replying to" text (indicating it's showing the original tweet)
-      const hasReplyingTo =
-        (await article.locator("text=/Replying to/i").count()) > 0;
+      // Check if this article is authored by the user by looking in the User-Name area
+      // This is the tweet header that contains the actual author, not mentions in the tweet body
+      const userNameArea = article.locator('[data-testid="User-Name"]');
 
-      if (hasReplyingTo) {
-        // This is the original tweet being replied to
-        // The next article should be the user's reply
-        const nextArticle = allArticles.nth(j + 1);
-        const authorLink = nextArticle
-          .locator(`a[href="/${USER_HANDLE}"]`)
-          .first();
+      if ((await userNameArea.count()) > 0) {
+        // Look for the user's handle link specifically within the author header
+        const authorLink = userNameArea.locator(`a[href="/${USER_HANDLE}"]`);
 
         if ((await authorLink.count()) > 0) {
-          // Found it! This is the user's reply
-          userReply = nextArticle;
+          // This article is authored by the user
+          userReply = article;
           break;
-        }
-      }
-    }
-
-    // Fallback: If we didn't find via "Replying to", try finding user's articles
-    // that appear after other articles (likely replies)
-    if (!userReply) {
-      for (let j = 1; j < articleCount; j++) {
-        const article = allArticles.nth(j);
-        const authorLink = article.locator(`a[href="/${USER_HANDLE}"]`).first();
-
-        if ((await authorLink.count()) > 0) {
-          // Check if the previous article is NOT by the user (meaning this is likely a reply)
-          const prevArticle = allArticles.nth(j - 1);
-          const prevAuthorLink = prevArticle
-            .locator(`a[href="/${USER_HANDLE}"]`)
-            .first();
-
-          if ((await prevAuthorLink.count()) === 0) {
-            // Previous article is not by the user, so this is likely a reply
-            userReply = article;
-            break;
-          }
         }
       }
     }
