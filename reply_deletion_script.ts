@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { initializeCSV, extractAndLogTweet } from "./tweet_logger";
 
 const REPLIES_TO_DELETE = 50;
 // Helper function to generate random delay between min and max milliseconds
@@ -7,6 +8,9 @@ function randomDelay(min: number, max: number): number {
 }
 
 async function deleteReplies(count: number) {
+  // Initialize CSV file for logging
+  initializeCSV();
+
   const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext({ storageState: "auth.json" });
   const page = await context.newPage();
@@ -26,7 +30,9 @@ async function deleteReplies(count: number) {
     // Wait a bit before processing the next reply to avoid rate limits
     if (i > 0) {
       const delay = randomDelay(1500, 3500); // Random delay between 1.5-3.5 seconds
-      console.log(`⏳ Waiting ${(delay / 1000).toFixed(1)}s before next deletion...`);
+      console.log(
+        `⏳ Waiting ${(delay / 1000).toFixed(1)}s before next deletion...`,
+      );
       await page.waitForTimeout(delay);
     }
 
@@ -34,7 +40,7 @@ async function deleteReplies(count: number) {
     // On the replies page, each reply thread shows:
     // 1. The original tweet (not ours) - often has "Replying to @username" text
     // 2. Our reply below it (this is what we want to delete)
-    
+
     const allArticles = page.locator("article");
     const articleCount = await allArticles.count();
 
@@ -46,20 +52,23 @@ async function deleteReplies(count: number) {
     // Strategy: Find articles with "Replying to" text (the original tweet),
     // then find the next article that has the user as author (the user's reply)
     let userReply = null;
-    
+
     for (let j = 0; j < articleCount - 1; j++) {
       const article = allArticles.nth(j);
-      
+
       // Check if this article has "Replying to" text (indicating it's showing the original tweet)
-      const hasReplyingTo = await article.locator('text=/Replying to/i').count() > 0;
-      
+      const hasReplyingTo =
+        (await article.locator("text=/Replying to/i").count()) > 0;
+
       if (hasReplyingTo) {
         // This is the original tweet being replied to
         // The next article should be the user's reply
         const nextArticle = allArticles.nth(j + 1);
-        const authorLink = nextArticle.locator(`a[href="/${USER_HANDLE}"]`).first();
-        
-        if (await authorLink.count() > 0) {
+        const authorLink = nextArticle
+          .locator(`a[href="/${USER_HANDLE}"]`)
+          .first();
+
+        if ((await authorLink.count()) > 0) {
           // Found it! This is the user's reply
           userReply = nextArticle;
           break;
@@ -73,13 +82,15 @@ async function deleteReplies(count: number) {
       for (let j = 1; j < articleCount; j++) {
         const article = allArticles.nth(j);
         const authorLink = article.locator(`a[href="/${USER_HANDLE}"]`).first();
-        
-        if (await authorLink.count() > 0) {
+
+        if ((await authorLink.count()) > 0) {
           // Check if the previous article is NOT by the user (meaning this is likely a reply)
           const prevArticle = allArticles.nth(j - 1);
-          const prevAuthorLink = prevArticle.locator(`a[href="/${USER_HANDLE}"]`).first();
-          
-          if (await prevAuthorLink.count() === 0) {
+          const prevAuthorLink = prevArticle
+            .locator(`a[href="/${USER_HANDLE}"]`)
+            .first();
+
+          if ((await prevAuthorLink.count()) === 0) {
             // Previous article is not by the user, so this is likely a reply
             userReply = article;
             break;
@@ -100,7 +111,7 @@ async function deleteReplies(count: number) {
     const undoRepostWithinTweet = firstTweet.getByRole("button", {
       name: /Undo (Repost|Retweet)/i,
     });
-    
+
     if (
       (await repostBanner.count()) > 0 ||
       (await undoRepostWithinTweet.count()) > 0
@@ -114,18 +125,30 @@ async function deleteReplies(count: number) {
         continue;
       }
 
+      // Extract and log tweet data before removing repost
+      const repostData = await extractAndLogTweet(firstTweet, "repost");
+      console.log(
+        `   📋 Logged: "${repostData.content.substring(0, 50)}${repostData.content.length > 50 ? "..." : ""}"`,
+      );
+
       await repostActionButton.first().click();
       await page.waitForTimeout(randomDelay(400, 700));
 
-      const undoRepostMenu = page.getByRole("menuitem", { name: /Undo (Repost|Retweet)/i });
+      const undoRepostMenu = page.getByRole("menuitem", {
+        name: /Undo (Repost|Retweet)/i,
+      });
       if ((await undoRepostMenu.count()) > 0) {
         await undoRepostMenu.first().click();
       } else {
-        const undoRepostButton = page.getByRole("button", { name: /Undo (Repost|Retweet)/i });
+        const undoRepostButton = page.getByRole("button", {
+          name: /Undo (Repost|Retweet)/i,
+        });
         if ((await undoRepostButton.count()) > 0) {
           await undoRepostButton.first().click();
         } else {
-          console.log("⚠️  Couldn't find the undo repost menu option, skipping...");
+          console.log(
+            "⚠️  Couldn't find the undo repost menu option, skipping...",
+          );
           continue;
         }
       }
@@ -135,6 +158,12 @@ async function deleteReplies(count: number) {
       console.log(`✅ Removed repost ${deletedCount} of ${count}!`);
       continue;
     }
+
+    // Extract and log tweet data before deletion
+    const replyData = await extractAndLogTweet(firstTweet, "reply");
+    console.log(
+      `   📋 Logged: "${replyData.content.substring(0, 50)}${replyData.content.length > 50 ? "..." : ""}"`,
+    );
 
     // Open the "More" menu
     const menuButton = firstTweet.getByRole("button", { name: "More" });
@@ -168,7 +197,9 @@ async function deleteReplies(count: number) {
     console.log(`✅ Deleted reply ${deletedCount} of ${count}!`);
   }
 
-  console.log(`\n🎉 Finished! Successfully processed ${deletedCount} reply(ies).`);
+  console.log(
+    `\n🎉 Finished! Successfully processed ${deletedCount} reply(ies).`,
+  );
   await browser.close();
 }
 
