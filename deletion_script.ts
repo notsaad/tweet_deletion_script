@@ -11,18 +11,18 @@ async function deleteTweets(count: number) {
   // Initialize CSV file for logging
   initializeCSV();
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext({ storageState: "auth.json" });
   const page = await context.newPage();
 
   await page.goto("https://x.com/notsaadOK"); // replace with your handle
   await page.waitForTimeout(3000); // let page load
 
-  // Click Replies tab to force content loading
-  const repliesTab = page.getByRole("tab", { name: /Replies/i });
-  if ((await repliesTab.count()) > 0) {
-    await repliesTab.first().click();
-    await page.waitForTimeout(2000); // wait for replies to load
+  // Click Likes tab to force content loading
+  const likesTab = page.getByRole("tab", { name: /Likes/i });
+  if ((await likesTab.count()) > 0) {
+    await likesTab.first().click();
+    await page.waitForTimeout(2000); // wait for likes to load
   }
 
   // Go back to Posts tab
