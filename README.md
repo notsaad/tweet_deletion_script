@@ -15,7 +15,7 @@ npm install
 First, authenticate with X/Twitter. This opens a browser window where you have 60 seconds to log in manually:
 
 ```bash
-npx ts-node cli.ts login
+./x-delete login
 ```
 
 This saves your session to `auth.json` for future use.
@@ -25,7 +25,7 @@ This saves your session to `auth.json` for future use.
 Delete tweets from your profile:
 
 ```bash
-npx ts-node cli.ts tweets -u <your_handle> -c <count>
+./x-delete tweets -u <your_handle> -c <count>
 ```
 
 Options:
@@ -36,7 +36,7 @@ Options:
 Example:
 
 ```bash
-npx ts-node cli.ts tweets -u notsaadOK -c 50
+./x-delete tweets -u notsaadOK -c 50
 ```
 
 ### 3. Delete Replies
@@ -44,7 +44,7 @@ npx ts-node cli.ts tweets -u notsaadOK -c 50
 Delete replies from your profile:
 
 ```bash
-npx ts-node cli.ts replies -u <your_handle> -c <count>
+./x-delete replies -u <your_handle> -c <count>
 ```
 
 Options:
@@ -55,17 +55,7 @@ Options:
 Example:
 
 ```bash
-npx ts-node cli.ts replies -u notsaadOK -c 25
-```
-
-## NPM Scripts
-
-You can also use npm scripts:
-
-```bash
-npm run login
-npm run tweets -- -u notsaadOK -c 50
-npm run replies -- -u notsaadOK -c 25
+./x-delete replies -u notsaadOK -c 25
 ```
 
 ## Features
@@ -82,6 +72,7 @@ npm run replies -- -u notsaadOK -c 25
 
 ## Files
 
+- `x-delete` - CLI executable (symlink to cli.ts)
 - `cli.ts` - Main CLI entry point
 - `login.ts` - Authentication handling
 - `deletion_script.ts` - Tweet deletion logic
