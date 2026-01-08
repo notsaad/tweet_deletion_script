@@ -1,21 +1,22 @@
 import { chromium } from "playwright";
+import * as path from "path";
 import { initializeCSV, extractAndLogTweet } from "./tweet_logger";
 
-const TWEETS_TO_DELETE = 100;
 // Helper function to generate random delay between min and max milliseconds
 function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function deleteTweets(count: number) {
+export async function deleteTweets(count: number, userHandle: string) {
   // Initialize CSV file for logging
   initializeCSV();
 
+  const authPath = path.join(__dirname, "auth.json");
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ storageState: "auth.json" });
+  const context = await browser.newContext({ storageState: authPath });
   const page = await context.newPage();
 
-  await page.goto("https://x.com/notsaadOK"); // replace with your handle
+  await page.goto(`https://x.com/${userHandle}`);
   await page.waitForTimeout(3000); // let page load
 
   // Helper function to go to Posts tab
@@ -194,4 +195,9 @@ async function deleteTweets(count: number) {
   await browser.close();
 }
 
-deleteTweets(TWEETS_TO_DELETE);
+// Allow running directly
+if (require.main === module) {
+  const count = parseInt(process.argv[2] || "100", 10);
+  const handle = process.argv[3] || "notsaadOK";
+  deleteTweets(count, handle);
+}

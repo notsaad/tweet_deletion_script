@@ -1,23 +1,22 @@
 import { chromium } from "playwright";
+import * as path from "path";
 import { initializeCSV, extractAndLogTweet } from "./tweet_logger";
 
-const REPLIES_TO_DELETE = 250;
 // Helper function to generate random delay between min and max milliseconds
 function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function deleteReplies(count: number) {
+export async function deleteReplies(count: number, userHandle: string) {
   // Initialize CSV file for logging
   initializeCSV();
 
+  const authPath = path.join(__dirname, "auth.json");
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ storageState: "auth.json" });
+  const context = await browser.newContext({ storageState: authPath });
   const page = await context.newPage();
 
-  const USER_HANDLE = "notsaadOK"; // replace with your handle
-
-  await page.goto(`https://x.com/${USER_HANDLE}/with_replies`); // includes both tweets and replies
+  await page.goto(`https://x.com/${userHandle}/with_replies`); // includes both tweets and replies
   await page.waitForTimeout(5000); // let tweets and replies load
   await page.evaluate(() => window.scrollBy(0, 400)); // scroll past pinned/header content
   await page.waitForTimeout(1000);
@@ -57,7 +56,7 @@ async function deleteReplies(count: number) {
 
       if ((await userNameArea.count()) > 0) {
         // Look for the user's handle link specifically within the author header
-        const authorLink = userNameArea.locator(`a[href="/${USER_HANDLE}"]`);
+        const authorLink = userNameArea.locator(`a[href="/${userHandle}"]`);
 
         if ((await authorLink.count()) > 0) {
           // This article is authored by the user
@@ -171,4 +170,9 @@ async function deleteReplies(count: number) {
   await browser.close();
 }
 
-deleteReplies(REPLIES_TO_DELETE);
+// Allow running directly
+if (require.main === module) {
+  const count = parseInt(process.argv[2] || "50", 10);
+  const handle = process.argv[3] || "notsaadOK";
+  deleteReplies(count, handle);
+}

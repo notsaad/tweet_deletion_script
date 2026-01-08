@@ -1,6 +1,18 @@
 {
+  "name": "tweet-delete",
+  "version": "1.0.0",
+  "description": "CLI tool for deleting tweets and replies from X/Twitter",
+  "main": "cli.ts",
+  "scripts": {
+    "start": "npx ts-node cli.ts",
+    "login": "npx ts-node cli.ts login",
+    "tweets": "npx ts-node cli.ts tweets",
+    "replies": "npx ts-node cli.ts replies"
+  },
   "dependencies": {
+    "commander": "^14.0.2",
     "playwright": "^1.55.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
   }
 }
