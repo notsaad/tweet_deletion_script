@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 import { initializeCSV, extractAndLogTweet } from "./tweet_logger";
 
-const REPLIES_TO_DELETE = 50;
+const REPLIES_TO_DELETE = 250;
 // Helper function to generate random delay between min and max milliseconds
 function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -11,7 +11,7 @@ async function deleteReplies(count: number) {
   // Initialize CSV file for logging
   initializeCSV();
 
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ storageState: "auth.json" });
   const page = await context.newPage();
 

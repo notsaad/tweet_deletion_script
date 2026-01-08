@@ -11,26 +11,21 @@ async function deleteTweets(count: number) {
   // Initialize CSV file for logging
   initializeCSV();
 
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ storageState: "auth.json" });
   const page = await context.newPage();
 
   await page.goto("https://x.com/notsaadOK"); // replace with your handle
   await page.waitForTimeout(3000); // let page load
 
-  // Click Likes tab to force content loading
-  const likesTab = page.getByRole("tab", { name: /Likes/i });
-  if ((await likesTab.count()) > 0) {
-    await likesTab.first().click();
-    await page.waitForTimeout(2000); // wait for likes to load
-  }
-
-  // Go back to Posts tab
-  const postsTab = page.getByRole("tab", { name: /Posts/i });
-  if ((await postsTab.count()) > 0) {
-    await postsTab.first().click();
-    await page.waitForTimeout(3000); // let tweets load
-  } else {
+  // Helper function to go to Posts tab
+  async function goToPostsTab() {
+    const postsTab = page.getByRole("tab", { name: /^Posts$/i });
+    if ((await postsTab.count()) > 0) {
+      await postsTab.first().click();
+      await page.waitForTimeout(3000);
+      return true;
+    }
     // Fallback: try "Posts & replies" if "Posts" doesn't exist
     const postsAndRepliesTab = page.getByRole("tab", {
       name: /Posts & replies/i,
@@ -38,9 +33,44 @@ async function deleteTweets(count: number) {
     if ((await postsAndRepliesTab.count()) > 0) {
       await postsAndRepliesTab.first().click();
       await page.waitForTimeout(3000);
+      return true;
+    }
+    return false;
+  }
+
+  // Helper function to check if tweets are loaded
+  async function tweetsLoaded() {
+    const articles = page.locator("article");
+    return (await articles.count()) > 0;
+  }
+
+  // List of tabs to try for forcing content loading
+  const tabsToTry = ["Articles", "Highlights", "Replies", "Likes"];
+
+  // Try each tab until tweets load
+  for (const tabName of tabsToTry) {
+    // First check if tweets are already loaded
+    await goToPostsTab();
+    await page.evaluate(() => window.scrollBy(0, 400));
+    await page.waitForTimeout(1000);
+
+    if (await tweetsLoaded()) {
+      console.log(`✅ Tweets loaded successfully`);
+      break;
+    }
+
+    console.log(`⚠️ Tweets not loaded, trying ${tabName} tab...`);
+
+    // Click the tab to force content loading
+    const tab = page.getByRole("tab", { name: new RegExp(tabName, "i") });
+    if ((await tab.count()) > 0) {
+      await tab.first().click();
+      await page.waitForTimeout(2000);
     }
   }
 
+  // Final attempt to go to Posts tab
+  await goToPostsTab();
   await page.evaluate(() => window.scrollBy(0, 400)); // scroll past pinned/header content
   await page.waitForTimeout(1000);
 
