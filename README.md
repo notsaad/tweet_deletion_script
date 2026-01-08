@@ -18,25 +18,27 @@ First, authenticate with X/Twitter. This opens a browser window where you have 6
 ./x-delete login
 ```
 
-This saves your session to `auth.json` for future use.
+This saves your session to `auth.json` and automatically detects your username for future commands.
 
 ### 2. Delete Tweets
 
 Delete tweets from your profile:
 
 ```bash
-./x-delete tweets -u <your_handle> -c <count>
+./x-delete tweets -c <count>
 ```
 
 Options:
 
-- `-u, --user <handle>` - Your X/Twitter handle without @ (required)
+- `-u, --user <handle>` - Your X/Twitter handle without @ (auto-detected from login)
 - `-c, --count <number>` - Number of tweets to delete (default: 100)
 
-Example:
+Examples:
 
 ```bash
-./x-delete tweets -u notsaadOK -c 50
+./x-delete tweets              # Delete 100 tweets using saved username
+./x-delete tweets -c 50        # Delete 50 tweets
+./x-delete tweets -u other -c 50  # Override username
 ```
 
 ### 3. Delete Replies
@@ -44,18 +46,19 @@ Example:
 Delete replies from your profile:
 
 ```bash
-./x-delete replies -u <your_handle> -c <count>
+./x-delete replies -c <count>
 ```
 
 Options:
 
-- `-u, --user <handle>` - Your X/Twitter handle without @ (required)
+- `-u, --user <handle>` - Your X/Twitter handle without @ (auto-detected from login)
 - `-c, --count <number>` - Number of replies to delete (default: 50)
 
-Example:
+Examples:
 
 ```bash
-./x-delete replies -u notsaadOK -c 25
+./x-delete replies             # Delete 50 replies using saved username
+./x-delete replies -c 25       # Delete 25 replies
 ```
 
 ## Features
@@ -79,4 +82,5 @@ Example:
 - `reply_deletion_script.ts` - Reply deletion logic
 - `tweet_logger.ts` - CSV logging utility
 - `auth.json` - Saved authentication state (created after login)
+- `config.json` - Saved username (created after login)
 - `deleted_tweets.csv` - Log of deleted tweets (created on first deletion)
