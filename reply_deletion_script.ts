@@ -17,7 +17,61 @@ export async function deleteReplies(count: number, userHandle: string) {
   const page = await context.newPage();
 
   await page.goto(`https://x.com/${userHandle}/with_replies`); // includes both tweets and replies
-  await page.waitForTimeout(5000); // let tweets and replies load
+  await page.waitForTimeout(3000); // let page load
+
+  // Helper function to go to Replies tab
+  async function goToRepliesTab() {
+    const repliesTab = page.getByRole("tab", { name: /^Replies$/i });
+    if ((await repliesTab.count()) > 0) {
+      await repliesTab.first().click();
+      await page.waitForTimeout(3000);
+      return true;
+    }
+    // Fallback: try "Posts & replies" if "Replies" doesn't exist
+    const postsAndRepliesTab = page.getByRole("tab", {
+      name: /Posts & replies/i,
+    });
+    if ((await postsAndRepliesTab.count()) > 0) {
+      await postsAndRepliesTab.first().click();
+      await page.waitForTimeout(3000);
+      return true;
+    }
+    return false;
+  }
+
+  // Helper function to check if replies are loaded
+  async function repliesLoaded() {
+    const articles = page.locator("article");
+    return (await articles.count()) > 0;
+  }
+
+  // List of tabs to try for forcing content loading
+  const tabsToTry = ["Posts", "Articles", "Highlights", "Likes"];
+
+  // Try each tab until replies load
+  for (const tabName of tabsToTry) {
+    // First check if replies are already loaded
+    await goToRepliesTab();
+    await page.evaluate(() => window.scrollBy(0, 400));
+    await page.waitForTimeout(1000);
+
+    if (await repliesLoaded()) {
+      console.log(`✅ Replies loaded successfully`);
+      break;
+    }
+
+    console.log(`⚠️ Replies not loaded, trying ${tabName} tab...`);
+
+    // Click the tab to force content loading
+    const tab = page.getByRole("tab", { name: new RegExp(tabName, "i") });
+    if ((await tab.count()) > 0) {
+      await tab.first().click();
+      await page.waitForTimeout(2000);
+    }
+  }
+
+  // Final attempt to go to Replies tab
+  await goToRepliesTab();
   await page.evaluate(() => window.scrollBy(0, 400)); // scroll past pinned/header content
   await page.waitForTimeout(1000);
 
